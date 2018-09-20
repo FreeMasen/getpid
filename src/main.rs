@@ -86,7 +86,7 @@ fn get_info_for(pid: usize) -> Option<(usize, String, String, String)> {
 }
 
 fn get_cmd_line(path: &str) -> Option<String> {
-    let cmd_line = get_link_for(path)?;
+    let cmd_line = get_str_for(path)?;
     Some(cmd_line.replace('\u{0}', " "))
 }
 
