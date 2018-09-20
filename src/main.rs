@@ -50,6 +50,7 @@ fn get_processes() -> Result<Vec<Process>, Error> {
         let entry = res?;
         if entry.file_type().is_dir() {
             let name = entry.file_name().to_string_lossy();
+            println!("file name: {:?}", name);
             match name.parse::<usize>() {
                 Ok(pid) => {
                     let comm = ::std::fs::read_to_string(entry.path().join("comm"))?;
