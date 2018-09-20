@@ -60,8 +60,9 @@ fn get_processes() -> Result<Vec<Process>, Error> {
                         let cmdline = ::std::fs::read_to_string(entry.path().join("cmdline"))?;
                         println!("cmdline: {}", cmdline);
                         let exe_content = ::std::fs::read_to_string(entry.path().join("exe"))?;
-                        println!("exe_data: {}", String::from_utf8_lossy(&exe_data.stdout));
+                        println!("ex_content: {}", exe_content);
                         let exe_data = Command::new(format!("stat {}", entry.path().join("exe").display())).output()?;
+                        println!("exe_data: {}", String::from_utf8_lossy(&exe_data.stdout));
                         println!("");
                     },
                     Err(e) => println!("parse error {}", e),
