@@ -48,12 +48,10 @@ fn get_processes() -> Result<Vec<Process>, Error> {
     // let processes = vec![];
     for res in WalkDir::new("/proc").min_depth(1).max_depth(1).follow_links(true) {
         let entry = res?;
-        println!("{:?}, {:?}", entry, entry.file_type().is_dir());
         if entry.file_type().is_dir() {
             let name = entry.file_name().to_string_lossy();
             match name.parse::<usize>() {
                 Ok(pid) => {
-                    println!("found pid: {}", pid);
                     let comm = ::std::fs::read_to_string(entry.path().join("comm"))?;
                     let cmdline = ::std::fs::read_to_string(entry.path().join("cmdline"))?;
                     let exe_content = ::std::fs::read_to_string(entry.path().join("exe"))?;
