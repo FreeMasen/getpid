@@ -72,7 +72,7 @@ fn get_info_for(pid: usize) -> Option<(usize, String, String, String)> {
     }
     let base = format!("/proc/{}", pid);
     let comm = get_str_for(&format!("{}/comm", base))?;
-    let cmd_line = get_str_for(&format!("{}/cmdline", base))?;
+    let cmd_line = get_cmd_line(&format!("{}/cmdline", base))?;
     let exe = get_link_for(&format!("{}/exe", base))?;
     Some((pid, comm, cmd_line, exe))
 }
