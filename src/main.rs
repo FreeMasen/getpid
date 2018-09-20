@@ -49,7 +49,7 @@ fn get_processes() -> Result<Vec<Process>, Error> {
     for res in WalkDir::new("/proc").min_depth(1).max_depth(1).follow_links(true) {
         let entry = res?;
         println!("{:?}, {:?}", entry, entry.file_type().is_dir());
-        if !entry.file_type().is_dir() {
+        if entry.file_type().is_dir() {
             let name = entry.file_name().to_string_lossy();
             match name.parse::<usize>() {
                 Ok(pid) => {
