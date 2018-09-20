@@ -90,7 +90,7 @@ fn get_str_for(path: &str) -> Option<String> {
 fn get_link_for(path: &str) -> Option<String> {
     let output = Command::new("stat").arg(path).output().ok()?;
     let text = String::from_utf8_lossy(&output.stdout);
-    println!("{:?}", text);
+    println!("{}", text);
     let first_line = text.lines().next()?;
 
     println!("first_line: {}", first_line);
