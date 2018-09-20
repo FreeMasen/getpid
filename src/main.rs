@@ -50,18 +50,21 @@ fn get_processes() -> Result<Vec<Process>, Error> {
         let entry = res?;
         println!("{:?}, {:?}", entry, entry.file_type().is_dir());
         if !entry.file_type().is_dir() {
-            if let Ok(i) = entry.file_name().to_string_lossy().parse::<usize>() {
-                let pid = i;
-                let comm = ::std::fs::read_to_string(entry.path().join("comm"))?;
-                let cmdline = ::std::fs::read_to_string(entry.path().join("cmdline"))?;
-                let exe_content = ::std::fs::read_to_string(entry.path().join("exe"))?;
-                let exe_data = Command::new(format!("stat {}", entry.path().join("exe").display())).output()?;
-                println!("info for {}", pid);
-                println!("----------");
-                println!("comm: {}", comm);
-                println!("cmdline: {}", cmdline);
-                println!("exe_data: {}", String::from_utf8_lossy(&exe_data.stdout));
-                println!("");
+            let name = entry.file_name().to_string_lossy();
+            match name.parse::<usize>() {
+                Ok(pid) => {
+                    let comm = ::std::fs::read_to_string(entry.path().join("comm"))?;
+                    let cmdline = ::std::fs::read_to_string(entry.path().join("cmdline"))?;
+                    let exe_content = ::std::fs::read_to_string(entry.path().join("exe"))?;
+                    let exe_data = Command::new(format!("stat {}", entry.path().join("exe").display())).output()?;
+                    println!("info for {}", pid);
+                    println!("----------");
+                    println!("comm: {}", comm);
+                    println!("cmdline: {}", cmdline);
+                    println!("exe_data: {}", String::from_utf8_lossy(&exe_data.stdout));
+                    println!("");
+                },
+                Err(e) => println!("parse error {}", e);
             }
         }
     }
