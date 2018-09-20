@@ -52,6 +52,7 @@ fn get_processes() -> Result<Vec<(usize, String, String, String)>, Error> {
     // let processes = vec![];
 
     let ret = WalkDir::new("/proc").min_depth(1).max_depth(1).follow_links(true).into_iter().filter_map(|res| {
+        println!("");
         if let Ok(entry) = res {
             if entry.file_type().is_dir() {
                 if let Ok(pid) = entry.file_name().to_string_lossy().parse::<usize>() {
@@ -95,6 +96,7 @@ fn get_str_for(path: &str) -> Option<String> {
 }
 
 fn get_link_for(path: &str) -> Option<String> {
+    println!("get_link_for({})", path);
     let link = read_link(path).ok()?;
     Some(link.to_string_lossy().to_string())
 }
