@@ -33,15 +33,16 @@ fn main() -> Result<(), Error> {
     let args: Args = Docopt::new(HELP)
                 .and_then(|d| d.deserialize())?;
     let processes = get_processes()?;
-    let matches: Vec<(usize, String, String, String)> = processes.into_iter().filter(|p| p.1 == args.arg_name).collect();
-    if matches.len() > 1 {
-        Err(Error::Other(format!("more than one process with the name {}", args.arg_name)))
-    } else if matches.len() < 1 {
-        Err(Error::Other(format!("no process found for {}", args.arg_name)))
-    } else {
-        println!("{}", matches[0].0);
+    println!("{:#?}", processes);
+    // let matches: Vec<(usize, String, String, String)> = processes.into_iter().filter(|p| p.1 == args.arg_name).collect();
+    // if matches.len() > 1 {
+    //     Err(Error::Other(format!("more than one process with the name {}", args.arg_name)))
+    // } else if matches.len() < 1 {
+    //     Err(Error::Other(format!("no process found for {}", args.arg_name)))
+    // } else {
+    //     println!("{}", matches[0].0);
         Ok(())
-    }
+    // }
 }
 
 fn get_processes() -> Result<Vec<(usize, String, String, String)>, Error> {
