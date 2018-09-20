@@ -52,8 +52,6 @@ fn main() -> Result<(), Error> {
 }
 
 fn get_processes() -> Result<Vec<Process>, Error> {
-    // let processes = vec![];
-
     let ret = WalkDir::new("/proc").min_depth(1).max_depth(1).follow_links(true).into_iter().filter_map(|res| {
         if let Ok(entry) = res {
             if entry.file_type().is_dir() {
