@@ -64,7 +64,7 @@ fn get_processes() -> Result<Vec<Process>, Error> {
                     println!("exe_data: {}", String::from_utf8_lossy(&exe_data.stdout));
                     println!("");
                 },
-                Err(e) => println!("parse error {}", e);
+                Err(e) => println!("parse error {}", e),
             }
         }
     }
