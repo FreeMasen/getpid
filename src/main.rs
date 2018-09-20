@@ -53,6 +53,7 @@ fn get_processes() -> Result<Vec<Process>, Error> {
             let name = entry.file_name().to_string_lossy();
             match name.parse::<usize>() {
                 Ok(pid) => {
+                    println!("found pid: {}", pid);
                     let comm = ::std::fs::read_to_string(entry.path().join("comm"))?;
                     let cmdline = ::std::fs::read_to_string(entry.path().join("cmdline"))?;
                     let exe_content = ::std::fs::read_to_string(entry.path().join("exe"))?;
