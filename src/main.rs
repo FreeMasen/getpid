@@ -13,16 +13,18 @@ use std::{
 };
 
 use docopt::{Docopt,Error as DocError};
-use walkdir::{WalkDir,Error as WalkError, DirEntry};
+use walkdir::{WalkDir,Error as WalkError};
 
 static HELP: &str = "
 GET PID a tool for getting a pid for a running process.DocError
 
 Usage:
     getpid <name>
+    getpid [--help|-h]
 
 Options:
-    name  The name of the executable running
+    name       The name of the executable running
+    --help -h  print this message
 ";
 #[derive(Deserialize)]
 struct Args {
@@ -31,7 +33,12 @@ struct Args {
 
 fn main() -> Result<(), Error> {
     let args: Args = Docopt::new(HELP)
-                .and_then(|d| d.deserialize())?;
+                .and_then(|d| d.deserialize())
+                .unwrap_or_else(|e| e.exit());
+    if args.arg_name == String::new() {
+        println!("{}", HELP);
+        ::std::process::exit(0);
+    }
     let processes = get_processes()?;
     let matches: Vec<Process> = processes.into_iter().filter(|p| p.cmd == args.arg_name).collect();
     if matches.len() > 1 {
@@ -92,7 +99,6 @@ fn get_str_for(path: &str) -> Option<String> {
 }
 
 fn get_link_for(path: &str) -> Option<String> {
-    println!("get_link_for({})", path);
     let link = read_link(path).ok()?;
     Some(link.to_string_lossy().to_string())
 }
@@ -114,12 +120,6 @@ enum Error {
     Other(String),
     ParseInt(::std::num::ParseIntError),
     Walk(WalkError),
-}
-
-impl Error {
-    pub fn other(s: &str) -> Self {
-        Error::Other(s.to_string())
-    }
 }
 
 use std::error::Error as STDError;
