@@ -33,13 +33,13 @@ fn main() -> Result<(), Error> {
     let args: Args = Docopt::new(HELP)
                 .and_then(|d| d.deserialize())?;
     let processes = get_processes()?;
-    let matches: Vec<Process> = processes.into_iter().filter(|p| p.cmd == args.arg_name).collect();
+    let matches: Vec<(usize, String, String, String)> = processes.into_iter().filter(|p| p.1 == args.arg_name).collect();
     if matches.len() > 1 {
         Err(Error::Other(format!("more than one process with the name {}", args.arg_name)))
     } else if matches.len() < 1 {
         Err(Error::Other(format!("no process found for {}", args.arg_name)))
     } else {
-        println!("{}", matches[0].pid);
+        println!("{}", matches[0].0);
         Ok(())
     }
 }
@@ -47,10 +47,10 @@ fn main() -> Result<(), Error> {
 fn get_processes() -> Result<Vec<(usize, String, String, String)>, Error> {
     // let processes = vec![];
 
-    let ret = WalkDir::new("/proc").min_depth(1).max_depth(1).follow_links(true).iter().filter_map(|res| {
+    let ret = WalkDir::new("/proc").min_depth(1).max_depth(1).follow_links(true).into_iter().filter_map(|res| {
         if let Ok(entry) = res {
             if entry.file_type().is_dir() {
-                if let Ok(pid) = entry.file_name().parse::<usize>() {
+                if let Ok(pid) = entry.file_name().to_string_lossy().parse::<usize>() {
                     get_info_for(pid)
                 } else {
                     None
@@ -84,8 +84,8 @@ fn get_link_for(path: &str) -> Option<String> {
     let output = Command::new("stat").arg(path).output().ok()?;
     let text = String::from_utf8_lossy(&output.stdout);
     let first_line = text.lines().next()?;
-    let link = first_line.trim_left_matches(format!("File: '{}' -> ", path));
-    Some(link.trim_matches("'").to_string())
+    let link = first_line.trim_left_matches(&format!("File: '{}' -> ", path));
+    Some(link.trim_matches('\'').to_string())
 }
 
 
