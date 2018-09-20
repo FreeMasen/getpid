@@ -44,33 +44,48 @@ fn main() -> Result<(), Error> {
     }
 }
 
-fn get_processes() -> Result<Vec<Process>, Error> {
+fn get_processes() -> Result<Vec<(usize, String, String, String)>, Error> {
     // let processes = vec![];
-    for res in WalkDir::new("/proc").min_depth(1).max_depth(1).follow_links(true) {
+
+    let ret = WalkDir::new("/proc").min_depth(1).max_depth(1).follow_links(true).iter().filter_map(|res| {
         if let Ok(entry) = res {
             if entry.file_type().is_dir() {
-                let name = entry.file_name().to_string_lossy();
-                println!("file name: {:?}", name);
-                match name.parse::<usize>() {
-                    Ok(pid) => {
-                        println!("info for {}", pid);
-                        println!("----------");
-                        let comm = ::std::fs::read_to_string(entry.path().join("comm"))?;
-                        println!("comm: {}", comm);
-                        let cmdline = ::std::fs::read_to_string(entry.path().join("cmdline"))?;
-                        println!("cmdline: {}", cmdline);
-                        // let exe_content = ::std::fs::read_to_string(entry.path().join("exe"))?;
-                        // println!("ex_content: {}", exe_content);
-                        let exe_data = Command::new("stat").arg(&entry.path().join("exe").as_os_str()).output()?;
-                        println!("exe_data: {}", String::from_utf8_lossy(&exe_data.stdout));
-                        println!("");
-                    },
-                    Err(e) => println!("parse error {}", e),
+                if let Ok(pid) = entry.file_name().parse::<usize>() {
+                    get_info_for(pid)
+                } else {
+                    None
                 }
+            } else {
+                None
             }
+        } else {
+            None
         }
+    }).collect();
+    Ok(ret)
+}
+
+fn get_info_for(pid: usize) -> Option<(usize, String, String, String)> {
+    if pid == 1 {
+        return None
     }
-    Ok(vec![])
+    let base = format!("/proc/{}", pid);
+    let comm = get_str_for(&format!("{}/comm", base))?;
+    let cmd_line = get_str_for(&format!("{}/cmdline", base))?;
+    let exe = get_link_for(&format!("{}/exe", base))?;
+    Some((pid, comm, cmd_line, exe))
+}
+
+fn get_str_for(path: &str) -> Option<String> {
+    ::std::fs::read_to_string(path).ok()
+}
+
+fn get_link_for(path: &str) -> Option<String> {
+    let output = Command::new("stat").arg(path).output().ok()?;
+    let text = String::from_utf8_lossy(&output.stdout);
+    let first_line = text.lines().next()?;
+    let link = first_line.trim_left_matches(format!("File: '{}' -> "));
+    Some(link.trim_matches("'").to_string())
 }
 
 
