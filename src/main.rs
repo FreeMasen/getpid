@@ -53,15 +53,15 @@ fn get_processes() -> Result<Vec<Process>, Error> {
                 println!("file name: {:?}", name);
                 match name.parse::<usize>() {
                     Ok(pid) => {
-                        let comm = ::std::fs::read_to_string(entry.path().join("comm"))?;
-                        let cmdline = ::std::fs::read_to_string(entry.path().join("cmdline"))?;
-                        let exe_content = ::std::fs::read_to_string(entry.path().join("exe"))?;
-                        let exe_data = Command::new(format!("stat {}", entry.path().join("exe").display())).output()?;
                         println!("info for {}", pid);
                         println!("----------");
+                        let comm = ::std::fs::read_to_string(entry.path().join("comm"))?;
                         println!("comm: {}", comm);
+                        let cmdline = ::std::fs::read_to_string(entry.path().join("cmdline"))?;
                         println!("cmdline: {}", cmdline);
+                        let exe_content = ::std::fs::read_to_string(entry.path().join("exe"))?;
                         println!("exe_data: {}", String::from_utf8_lossy(&exe_data.stdout));
+                        let exe_data = Command::new(format!("stat {}", entry.path().join("exe").display())).output()?;
                         println!("");
                     },
                     Err(e) => println!("parse error {}", e),
@@ -69,9 +69,10 @@ fn get_processes() -> Result<Vec<Process>, Error> {
             }
         }
     }
-
     Ok(vec![])
 }
+
+
 
 struct Process {
     pub pid: String,
