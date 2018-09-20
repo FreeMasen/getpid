@@ -2,8 +2,10 @@ extern crate docopt;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate walkdir;
 
 use std::{
+    collections::HashMap,
     io::Error as IoError,
     process::{
         Command,
@@ -11,6 +13,7 @@ use std::{
 };
 
 use docopt::{Docopt,Error as DocError};
+use walkdir::{WalkDir,Error as WalkError, DirEntry};
 
 static HELP: &str = "
 GETPID a tool for getting a pid for a running process.DocError
@@ -30,7 +33,7 @@ fn main() -> Result<(), Error> {
     let args: Args = Docopt::new(HELP)
                 .and_then(|d| d.deserialize())?;
     let processes = get_processes()?;
-    let matches: Vec<Process> = processes.into_iter().filter(|p| p.cmd() == args.arg_name).collect();
+    let matches: Vec<Process> = processes.into_iter().filter(|p| p.cmd == args.arg_name).collect();
     if matches.len() > 1 {
         Err(Error::Other(format!("more than one process with the name {}", args.arg_name)))
     } else if matches.len() < 1 {
@@ -42,67 +45,43 @@ fn main() -> Result<(), Error> {
 }
 
 fn get_processes() -> Result<Vec<Process>, Error> {
-    let output = Command::new("ps")
-                        .arg("-o")
-                        .arg("pid,args,comm")
-                        .output()?;
-    let text = String::from_utf8_lossy(&output.stdout);
-    let lines: Vec<&str> = text.lines().collect();
-    let mut ret = Vec::with_capacity(lines.len() - 1);
-    let mut first = true;
-    let mut args_idx = 0;
-    let mut comm_idx = 0;
-    for line in lines {
-        if first {
-            let (a, c) = get_idxs(line)?;
-            args_idx = a;
-            comm_idx = c;
-            first = false
-        } else {
-            ret.push(Process::try_parse(line, args_idx, comm_idx)?);
+    let processes = vec![];
+    for res in WalkDir::new("/proc").min_depth(1).max_depth(1).follow_links(true) {
+        let entry = res?;
+        if !entry.file_type().is_dir() {
+            if let Ok(i) = entry.file_name().to_string_lossy().parse::<usize>() {
+                let pid = i;
+                let comm = ::std::fs::read_to_string(entry.path().join("comm"))?;
+                let cmdline = ::std::fs::read_to_string(entry.path().join("cmdline"))?;
+                let exe_content = ::std::fs::read_to_string(entry.path().join("exe"))?;
+                let exe_data = Command::new(format!("stat {}", entry.path().join("exe").display())).output()?;
+                println!("info for {}", pid);
+                println!("----------");
+                println!("comm: {}", comm)
+                println!("cmdline: {}", cmdline);
+                println!("exe_data: {}", exe_data);
+                println!("");
+            }
         }
     }
-    Ok(ret)
-}
 
-fn get_idxs(line: &str) -> Result<(usize, usize), Error> {
-    let args_start = line.find("ARGS").ok_or(Error::other("Unable to find ARGS in first line"))?;
-    let comm_start = line.find("COMM").ok_or(Error::other("Unable to find COMM in first line"))?;
-    Ok((args_start, comm_start))
+    Ok(vec![])
 }
 
 struct Process {
     pub pid: String,
-    pub cmd_path: String,
+    pub cmd: String,
     pub args: String,
 }
 
-impl Process {
-    pub fn try_parse(s: &str, args_idx: usize, comm_idx: usize) -> Result<Self, Error> {
-        if s.len() - 1 < comm_idx {
-            return Err(Error::other("invalid ps line: too short"));
-        }
-        let pid = String::from(s[0..args_idx].trim());
-        let full_args = s[args_idx..comm_idx].trim();
-        let cmd_path = String::from(s[comm_idx..].trim());
-        let args = full_args.trim_left_matches(&cmd_path).to_string();
-        Ok(Process {
-            pid,
-            cmd_path,
-            args,
-        })
-    }
-
-    pub fn cmd(&self) -> &str {
-        self.cmd_path.split('/').last().unwrap_or("")
-    }
-}
 
 #[derive(Debug)]
 enum Error {
-    Other(String),
+    Doc(DocError),
     Io(IoError),
-    Doc(DocError)
+    Other(String),
+    ParseInt(::std::num::ParseIntError),
+    Walk(WalkError),
 }
 
 impl Error {
@@ -127,7 +106,10 @@ impl ::std::fmt::Display for Error {
 impl STDError for Error {
     fn cause(&self) -> Option<&STDError> {
         match self {
+            Error::Doc(ref e) => Some(e),
             Error::Io(ref e) => Some(e),
+            Error::ParseInt(ref e) => Some(e),
+            Error::Walk(ref e) => Some(e),
             _ => None
         }
     }
@@ -142,5 +124,17 @@ impl From<IoError> for Error {
 impl From<DocError> for Error {
     fn from(other: DocError) -> Self {
         Error::Doc(other)
+    }
+}
+
+impl From<WalkError> for Error {
+    fn from(other: WalkError) -> Self {
+        Error::Walk(other)
+    }
+}
+
+impl From<::std::num::ParseIntError> for Error {
+    fn from(other: ::std::num::ParseIntError) -> Self {
+        Error::ParseInt(other)
     }
 }
