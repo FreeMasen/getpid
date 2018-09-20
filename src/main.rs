@@ -55,7 +55,6 @@ fn get_processes() -> Result<Vec<Process>, Error> {
     // let processes = vec![];
 
     let ret = WalkDir::new("/proc").min_depth(1).max_depth(1).follow_links(true).into_iter().filter_map(|res| {
-        println!("");
         if let Ok(entry) = res {
             if entry.file_type().is_dir() {
                 if let Ok(pid) = entry.file_name().to_string_lossy().parse::<usize>() {
