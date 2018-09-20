@@ -45,7 +45,7 @@ fn main() -> Result<(), Error> {
 }
 
 fn get_processes() -> Result<Vec<Process>, Error> {
-    let processes = vec![];
+    // let processes = vec![];
     for res in WalkDir::new("/proc").min_depth(1).max_depth(1).follow_links(true) {
         let entry = res?;
         if !entry.file_type().is_dir() {
@@ -57,9 +57,9 @@ fn get_processes() -> Result<Vec<Process>, Error> {
                 let exe_data = Command::new(format!("stat {}", entry.path().join("exe").display())).output()?;
                 println!("info for {}", pid);
                 println!("----------");
-                println!("comm: {}", comm)
+                println!("comm: {}", comm);
                 println!("cmdline: {}", cmdline);
-                println!("exe_data: {}", exe_data);
+                println!("exe_data: {}", String::from_utf8_lossy(&exe_data.stdout));
                 println!("");
             }
         }
