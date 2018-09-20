@@ -5,7 +5,10 @@ extern crate serde_derive;
 extern crate walkdir;
 
 use std::{
-    collections::HashMap,
+    fs::{
+        read_link,
+        read_to_string
+    },
     io::Error as IoError,
     process::{
         Command,
@@ -33,7 +36,7 @@ fn main() -> Result<(), Error> {
     let args: Args = Docopt::new(HELP)
                 .and_then(|d| d.deserialize())?;
     let processes = get_processes()?;
-    // println!("{:#?}", processes);
+    println!("{:#?}", processes);
     // let matches: Vec<(usize, String, String, String)> = processes.into_iter().filter(|p| p.1 == args.arg_name).collect();
     // if matches.len() > 1 {
     //     Err(Error::Other(format!("more than one process with the name {}", args.arg_name)))
@@ -88,16 +91,8 @@ fn get_str_for(path: &str) -> Option<String> {
 }
 
 fn get_link_for(path: &str) -> Option<String> {
-    let output = Command::new("stat").arg(path).output().ok()?;
-    let text = String::from_utf8_lossy(&output.stdout);
-    println!("{}", text);
-    let first_line = text.lines().next()?;
-
-    println!("first_line: {}", first_line);
-    let arrow_start = first_line.find("->")?;
-    let link = &first_line[arrow_start + 4..first_line.len() - 1];
-    println!("link: {}", link);
-    Some(link.to_string())
+    let link = read_link(path).ok()?;
+    Some(link.to_string_lossy().to_string())
 }
 
 
