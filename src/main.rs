@@ -10,16 +10,13 @@ use std::{
         read_to_string
     },
     io::Error as IoError,
-    process::{
-        Command,
-    },
 };
 
 use docopt::{Docopt,Error as DocError};
 use walkdir::{WalkDir,Error as WalkError, DirEntry};
 
 static HELP: &str = "
-GETPID a tool for getting a pid for a running process.DocError
+GET PID a tool for getting a pid for a running process.DocError
 
 Usage:
     getpid <name>
@@ -36,19 +33,18 @@ fn main() -> Result<(), Error> {
     let args: Args = Docopt::new(HELP)
                 .and_then(|d| d.deserialize())?;
     let processes = get_processes()?;
-    println!("{:#?}", processes);
-    // let matches: Vec<(usize, String, String, String)> = processes.into_iter().filter(|p| p.1 == args.arg_name).collect();
-    // if matches.len() > 1 {
-    //     Err(Error::Other(format!("more than one process with the name {}", args.arg_name)))
-    // } else if matches.len() < 1 {
-    //     Err(Error::Other(format!("no process found for {}", args.arg_name)))
-    // } else {
-    //     println!("{}", matches[0].0);
+    let matches: Vec<Process> = processes.into_iter().filter(|p| p.cmd == args.arg_name).collect();
+    if matches.len() > 1 {
+        Err(Error::Other(format!("more than one process with the name {}", args.arg_name)))
+    } else if matches.len() < 1 {
+        Err(Error::Other(format!("no process found for {}", args.arg_name)))
+    } else {
+        println!("{}", matches[0].pid);
         Ok(())
-    // }
+    }
 }
 
-fn get_processes() -> Result<Vec<(usize, String, String, String)>, Error> {
+fn get_processes() -> Result<Vec<Process>, Error> {
     // let processes = vec![];
 
     let ret = WalkDir::new("/proc").min_depth(1).max_depth(1).follow_links(true).into_iter().filter_map(|res| {
@@ -70,28 +66,28 @@ fn get_processes() -> Result<Vec<(usize, String, String, String)>, Error> {
     Ok(ret)
 }
 
-fn get_info_for(pid: usize) -> Option<(usize, String, String, String)> {
-    if pid == 1 {
-        return None
-    }
-    println!("process: {}\n----------", pid);
+fn get_info_for(pid: usize) -> Option<Process> {
     let base = format!("/proc/{}", pid);
     let comm = get_str_for(&format!("{}/comm", base))?;
-    println!("comm: {}", comm);
     let cmd_line = get_cmd_line(&format!("{}/cmdline", base))?;
-    println!("cmd_line: {}", cmd_line);
     let exe = get_link_for(&format!("{}/exe", base))?;
-    println!("exe: {}\n", exe);
-    Some((pid, comm, cmd_line, exe))
+    Some(Process {
+        pid,
+        cmd: comm,
+        args: cmd_line,
+        full_cmd_path: exe,
+    })
 }
 
-fn get_cmd_line(path: &str) -> Option<String> {
+fn get_cmd_line(path: &str) -> Option<Vec<String>> {
     let cmd_line = get_str_for(path)?;
-    Some(cmd_line.replace('\u{0}', " "))
+    let mut all = cmd_line.split('\u{0}');
+    let _comm = all.next();
+    Some(all.map(String::from).collect())
 }
 
 fn get_str_for(path: &str) -> Option<String> {
-    let ret = ::std::fs::read_to_string(path).ok()?;
+    let ret = read_to_string(path).ok()?;
     Some(ret.trim().to_string())
 }
 
@@ -102,11 +98,12 @@ fn get_link_for(path: &str) -> Option<String> {
 }
 
 
-
+#[derive(Debug)]
 struct Process {
-    pub pid: String,
+    pub pid: usize,
     pub cmd: String,
-    pub args: String,
+    pub full_cmd_path: String,
+    pub args: Vec<String>,
 }
 
 
