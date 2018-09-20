@@ -77,6 +77,11 @@ fn get_info_for(pid: usize) -> Option<(usize, String, String, String)> {
     Some((pid, comm, cmd_line, exe))
 }
 
+fn get_cmd_line(path: &str) -> Option<String> {
+    let cmd_line = get_link_for(path)?;
+    Some(cmd_line.replace('\u{0}', " "))
+}
+
 fn get_str_for(path: &str) -> Option<String> {
     let ret = ::std::fs::read_to_string(path).ok()?;
     Some(ret.trim().to_string())
@@ -86,8 +91,8 @@ fn get_link_for(path: &str) -> Option<String> {
     let output = Command::new("stat").arg(path).output().ok()?;
     let text = String::from_utf8_lossy(&output.stdout);
     let first_line = text.lines().next()?;
-    let link = first_line.trim_left_matches(&format!("File: '{}' -> ", path));
-    Some(link.trim_matches('\'').to_string())
+    let link = first_line.trim().trim_left_matches(&format!("File: '{}' -> ", path)).trim_matches('\'');
+    Some(link.to_string())
 }
 
 
