@@ -33,7 +33,7 @@ fn main() -> Result<(), Error> {
     let args: Args = Docopt::new(HELP)
                 .and_then(|d| d.deserialize())?;
     let processes = get_processes()?;
-    println!("{:#?}", processes);
+    // println!("{:#?}", processes);
     // let matches: Vec<(usize, String, String, String)> = processes.into_iter().filter(|p| p.1 == args.arg_name).collect();
     // if matches.len() > 1 {
     //     Err(Error::Other(format!("more than one process with the name {}", args.arg_name)))
@@ -91,7 +91,10 @@ fn get_link_for(path: &str) -> Option<String> {
     let output = Command::new("stat").arg(path).output().ok()?;
     let text = String::from_utf8_lossy(&output.stdout);
     let first_line = text.lines().next()?;
-    let link = first_line.trim().trim_left_matches(&format!("File: '{}' -> ", path)).trim_matches('\'');
+    println!("first_line: {}", first_line);
+    let target = format!("File: '{}' -> ", path);
+    println!("target: {}", target);
+    let link = first_line.trim().trim_left_matches(&target).trim_matches('\'');
     Some(link.to_string())
 }
 
