@@ -84,7 +84,7 @@ fn get_link_for(path: &str) -> Option<String> {
     let output = Command::new("stat").arg(path).output().ok()?;
     let text = String::from_utf8_lossy(&output.stdout);
     let first_line = text.lines().next()?;
-    let link = first_line.trim_left_matches(format!("File: '{}' -> "));
+    let link = first_line.trim_left_matches(format!("File: '{}' -> ", path));
     Some(link.trim_matches("'").to_string())
 }
 
