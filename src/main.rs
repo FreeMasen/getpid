@@ -78,7 +78,8 @@ fn get_info_for(pid: usize) -> Option<(usize, String, String, String)> {
 }
 
 fn get_str_for(path: &str) -> Option<String> {
-    ::std::fs::read_to_string(path).ok()
+    let ret = ::std::fs::read_to_string(path).ok()?;
+    Some(ret.trim().to_string())
 }
 
 fn get_link_for(path: &str) -> Option<String> {
