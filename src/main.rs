@@ -91,10 +91,11 @@ fn get_link_for(path: &str) -> Option<String> {
     let output = Command::new("stat").arg(path).output().ok()?;
     let text = String::from_utf8_lossy(&output.stdout);
     let first_line = text.lines().next()?;
+    let arrow_start = first_line.find("->")?;
+
     println!("first_line: {}", first_line);
-    let target = format!("File: '{}' -> ", path);
-    println!("target: {}", target);
-    let link = first_line.trim().trim_left_matches(&target).trim_matches('\'');
+    let link = &first_line[arrow_start + 4..first_line.len() - 1];
+    println!("link: {}", link);
     Some(link.to_string())
 }
 
