@@ -2,18 +2,23 @@ extern crate docopt;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+#[cfg(not(target_os = "macos"))]
 extern crate walkdir;
+#[cfg(target_os="macos")]
+extern crate libc;
 
-use std::{
-    fs::{
-        read_link,
-        read_to_string
-    },
-    io::Error as IoError,
-};
+#[cfg(target_os = "macos")]
+mod mac;
+
+use std::io::Error as IoError;
+#[cfg(not(target_os = "macos"))]
+use std::fs::{read_link, read_to_string};
 
 use docopt::{Docopt,Error as DocError};
+#[cfg(not(target_os = "macos"))]
 use walkdir::{WalkDir,Error as WalkError};
+#[cfg(target_os = "macos")]
+mod sysctl;
 
 static HELP: &str = "
 GET PID a tool for getting a pid for a running process.DocError
@@ -50,7 +55,7 @@ fn main() -> Result<(), Error> {
         Ok(())
     }
 }
-
+#[cfg(not(target_os = "macos"))]
 fn get_processes() -> Result<Vec<Process>, Error> {
     let ret = WalkDir::new("/proc").min_depth(1).max_depth(1).follow_links(true).into_iter().filter_map(|res| {
         if let Ok(entry) = res {
@@ -69,7 +74,7 @@ fn get_processes() -> Result<Vec<Process>, Error> {
     }).collect();
     Ok(ret)
 }
-
+#[cfg(not(target_os = "macos"))]
 fn get_info_for(pid: usize) -> Option<Process> {
     let base = format!("/proc/{}", pid);
     let comm = get_str_for(&format!("{}/comm", base))?;
@@ -82,22 +87,33 @@ fn get_info_for(pid: usize) -> Option<Process> {
         full_cmd_path: exe,
     })
 }
-
+#[cfg(not(target_os = "macos"))]
 fn get_cmd_line(path: &str) -> Option<Vec<String>> {
     let cmd_line = get_str_for(path)?;
     let mut all = cmd_line.split('\u{0}');
     let _comm = all.next();
     Some(all.map(String::from).collect())
 }
-
+#[cfg(not(target_os = "macos"))]
 fn get_str_for(path: &str) -> Option<String> {
     let ret = read_to_string(path).ok()?;
     Some(ret.trim().to_string())
 }
-
+#[cfg(not(target_os = "macos"))]
 fn get_link_for(path: &str) -> Option<String> {
     let link = read_link(path).ok()?;
     Some(link.to_string_lossy().to_string())
+}
+
+#[cfg(target_os = "macos")]
+fn get_processes() -> Result<Vec<Process>, Error> {
+    let tups = mac::get_processes()?;
+    Ok(tups.into_iter().map(|(pid, cmd)| Process {
+        pid,
+        cmd,
+        full_cmd_path: String::new(),
+        args: vec![],
+    }).collect())
 }
 
 
@@ -116,6 +132,7 @@ enum Error {
     Io(IoError),
     Other(String),
     ParseInt(::std::num::ParseIntError),
+    #[cfg(not(target_os = "macos"))]
     Walk(WalkError),
 }
 
@@ -138,6 +155,7 @@ impl STDError for Error {
             Error::Doc(ref e) => Some(e),
             Error::Io(ref e) => Some(e),
             Error::ParseInt(ref e) => Some(e),
+            #[cfg(not(target_os = "macos"))]
             Error::Walk(ref e) => Some(e),
             _ => None
         }
@@ -155,7 +173,7 @@ impl From<DocError> for Error {
         Error::Doc(other)
     }
 }
-
+#[cfg(not(target_os = "macos"))]
 impl From<WalkError> for Error {
     fn from(other: WalkError) -> Self {
         Error::Walk(other)
